@@ -35,7 +35,10 @@
 <script>
 let player;
 const START_TIME = 90;
-const PREVIEW_LENGTH = 5;
+const PREVIEW_LENGTH = 30;
+const BUFFER_START = 40;      
+const BUFFER_END = 50;   
+
 const params = new URLSearchParams(window.location.search);
 const requestVideoId = params.get('videoId');
 if (!requestVideoId) {
@@ -49,9 +52,9 @@ function onYouTubeIframeAPIReady() {
     width: '320',
     videoId: requestVideoId,
     playerVars: {
-        start: START_TIME,
-        end: START_TIME + PREVIEW_LENGTH,
-      controls: 0,
+      // start: START_TIME,
+      // end: START_TIME + PREVIEW_LENGTH,
+      // controls: 0,
       modestbranding: 1,
       rel: 0
     },
@@ -66,16 +69,41 @@ function onPlayerReady() {
   {
       throw new Error('Player not loaded');
   }
-
   console.log("Player ready");
+  const duration = 200;
+
+  if (duration < BUFFER_START + BUFFER_END + PREVIEW_LENGTH) {
+    console.warn('Song too short, starting at 0');
+    playPreview(0);
+    return;
+  }
+
+  const minStart = BUFFER_START;
+  const maxStart = duration - BUFFER_END - PREVIEW_LENGTH;
+
+  const randomStart =
+    Math.floor(Math.random() * (maxStart - minStart + 1)) + minStart;
+
+  playPreview(randomStart);
+}
+
+function playPreview(startTime) {
+  player.seekTo(startTime, true);
+  player.playVideo();
+
+  setTimeout(() => {
+    player.stopVideo();
+  }, PREVIEW_LENGTH);
 }
 
 document.getElementById('playBtn').addEventListener('click', () => {
-  setTimeout(() => {
-  document.getElementById('player').style.display = 'block';
-  player.playVideo();
-  console.log("PLAY");
-  },1000);
+  onPlayerReady();
+  
+  // setTimeout(() => {
+  // document.getElementById('player').style.display = 'block';
+  // player.playVideo();
+  // console.log("PLAY");
+  // },1000);
 
 // setTimeout(() => {
 //   player.playVideo();
