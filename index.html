@@ -1,76 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-
-<title>Music Card</title>
-
-<script src="https://www.youtube.com/iframe_api"></script>
+<meta charset="UTF-8">
+<title>Music Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
   body {
-    font-family: system-ui, sans-serif;
+    background: #111;
+    color: white;
+    font-family: Arial, sans-serif;
     text-align: center;
-    padding: 24px;
+    padding: 20px;
   }
 
   #player {
-    margin-top: 16px;
+    margin-top: 20px;
+    display: none;
   }
 
   button {
-    font-size: 16px;
-    padding: 12px 18px;
+    margin-top: 20px;
+    padding: 14px 24px;
+    font-size: 18px;
   }
 </style>
 </head>
 <body>
 
-<h2>Music Card</h2>
-
-<h3>Rihanna – Umbrella (2007)</h3>
-
 <div id="player"></div>
-
-<br />
-
-<button onclick="location.reload()">Scan another QR code</button>
+<button id="playBtn">▶ Play preview</button>
+<script src="https://www.youtube.com/iframe_api"></script>
 
 <script>
 let player;
+const START_TIME = 90;
+const PREVIEW_LENGTH = 5;
+const params = new URLSearchParams(window.location.search);
+const requestVideoId = params.get('videoId');
+if (!requestVideoId) {
+    document.body.innerHTML = '<p style="color:red">Invalid QR code (missing requestVideoId)</p>';
+    throw new Error('Missing requestVideoId');
+  }
 
 function onYouTubeIframeAPIReady() {
-  // Player is created immediately when page loads
   player = new YT.Player('player', {
-    videoId: 'CvBfHwUxHIk', // Umbrella
+    height: '180',
+    width: '320',
+    videoId: requestVideoId,
     playerVars: {
-      autoplay: 1,        // START IMMEDIATELY
-      mute: 1,            // REQUIRED for Android autoplay
-      start: 90,          // middle of the song
+        start: START_TIME,
+        end: START_TIME + PREVIEW_LENGTH,
       controls: 0,
       modestbranding: 1,
-      rel: 0,
-      fs: 0,
-      disablekb: 1,
-      iv_load_policy: 3
+      rel: 0
     },
     events: {
-      'onReady': onPlayerReady,
-      'onError': e => console.error('YT error:', e.data)
+      onReady: onPlayerReady
     }
   });
 }
 
 function onPlayerReady() {
-  // Unmute after playback has started
-  player.unMute();
+  if (!player)
+  {
+      throw new Error('Player not loaded');
+  }
 
-  // Stop after 30 seconds
-  setTimeout(() => {
-    player.stopVideo();
-  }, 30000);
+  console.log("Player ready");
 }
+
+document.getElementById('playBtn').addEventListener('click', () => {
+  setTimeout(() => {
+  document.getElementById('player').style.display = 'block';
+  player.playVideo();
+  console.log("PLAY");
+  },1000);
+
+// setTimeout(() => {
+//   player.playVideo();
+//   console.log("PLAY");
+//   },1000);
+
+//   setTimeout(() => {
+//     player.stopVideo();
+//     console.log("STOP");
+//   }, PREVIEW_LENGTH);
+});
 </script>
 
 </body>
