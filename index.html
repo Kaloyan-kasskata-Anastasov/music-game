@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>Music Card</title>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    text-align: center;
+    padding: 24px;
+  }
+
+  #player {
+    margin-top: 16px;
+  }
+
+  button {
+    font-size: 16px;
+    padding: 12px 18px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Music Card</h2>
+
+<h3>Rihanna – Umbrella (2007)</h3>
+
+<div id="player"></div>
+
+<br />
+
+<button onclick="location.reload()">Scan another QR code</button>
+
+<script>
+let player;
+
+function onYouTubeIframeAPIReady() {
+  // Player is created immediately when page loads
+  player = new YT.Player('player', {
+    videoId: 'CvBfHwUxHIk', // Umbrella
+    playerVars: {
+      autoplay: 1,        // START IMMEDIATELY
+      mute: 1,            // REQUIRED for Android autoplay
+      start: 90,          // middle of the song
+      controls: 0,
+      modestbranding: 1,
+      rel: 0,
+      fs: 0,
+      disablekb: 1,
+      iv_load_policy: 3
+    },
+    events: {
+      'onReady': onPlayerReady,
+      'onError': e => console.error('YT error:', e.data)
+    }
+  });
+}
+
+function onPlayerReady() {
+  // Unmute after playback has started
+  player.unMute();
+
+  // Stop after 30 seconds
+  setTimeout(() => {
+    player.stopVideo();
+  }, 30000);
+}
+</script>
+
+</body>
+</html>
