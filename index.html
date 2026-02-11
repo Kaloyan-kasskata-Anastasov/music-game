@@ -1,92 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>Music Game</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Music Game Scanner</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1DB954">
+  <link rel="apple-touch-icon" href="icon.png">
 
-<style>
-  body {
-    background: #111;
-    color: white;
-    font-family: Arial, sans-serif;
-    text-align: center;
-    padding: 20px;
-  }
-
-  #player {
-    margin-top: 20px;
-    display: none;
-  }
-
-  button {
-    margin-top: 20px;
-    padding: 14px 24px;
-    font-size: 18px;
-  }
-</style>
-</head>
-<body>
-
-<div id="player"></div>
-<button id="playBtn"> Play </button>
-<script src="https://www.youtube.com/iframe_api"></script>
-
-<script>
-let player;
-const START_TIME = 90;
-const PREVIEW_LENGTH = 30;
-const params = new URLSearchParams(window.location.search);
-const requestVideoId = params.get('videoId');
-if (!requestVideoId) {
-    document.body.innerHTML = '<p style="color:red">Invalid QR code (missing requestVideoId)</p>';
-    throw new Error('Missing requestVideoId');
-  }
-
-function onYouTubeIframeAPIReady() {
-  player = new YT.Player('player', {
-    height: '180',
-    width: '320',
-    videoId: requestVideoId,
-    playerVars: {
-        start: START_TIME,
-        end: START_TIME + PREVIEW_LENGTH,
-      controls: 0,
-      modestbranding: 1,
-      rel: 0
-    },
-    events: {
-      onReady: onPlayerReady
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      text-align: center;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
     }
-  });
-}
 
-function onPlayerReady() {
-  if (!player)
-  {
-      throw new Error('Player not loaded');
-  }
-  console.log("Player ready");
-}
+    #scan-container {
+      margin: 20px auto;
+      width: 300px;
+      height: 300px;
+      background: #000;
+      border: 2px solid #333;
+      display: none;
+    }
 
-document.getElementById('playBtn').addEventListener('click', () => {
-  setTimeout(() => {
-  document.getElementById('player').style.display = 'block';
-  player.playVideo();
-  console.log("PLAY");
-  },1000);
+    /* The main SCAN button */
+    .btn {
+      background-color: #1DB954;
+      color: white;
+      border: none;
+      padding: 20px 40px;
+      font-size: 24px;
+      border-radius: 50px;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-weight: bold;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      margin: 20px;
+    }
 
-// setTimeout(() => {
-//   player.playVideo();
-//   console.log("PLAY");
-//   },1000);
+    .btn:active {
+      transform: scale(0.98);
+    }
 
-//   setTimeout(() => {
-//     player.stopVideo();
-//     console.log("STOP");
-//   }, PREVIEW_LENGTH);
-});
-</script>
+    .btn-secondary {
+      background-color: #535353;
+      font-size: 18px;
+      padding: 15px 30px;
+    }
 
+    /* Hidden YouTube Container (we need it visible-ish for the API to work, but off-screen) */
+    #player-wrapper {
+      position: absolute;
+      top: -9999px;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      /* On mobile, sometimes video needs to be "visible" to play. 
+               If off-screen doesn't work, we make it 1x1 pixel transparent. */
+    }
+
+    #message-area {
+      font-size: 22px;
+      margin: 20px;
+      min-height: 50px;
+      color: #bbb;
+    }
+
+    #song-info {
+      display: none;
+      margin-top: 20px;
+      animation: fadeIn 1s;
+    }
+
+    #song-info h1 {
+      font-size: 28px;
+      margin: 10px 0;
+      color: #fff;
+    }
+
+    #song-info h2 {
+      font-size: 20px;
+      color: #1DB954;
+      margin: 5px 0;
+    }
+
+    #song-info p {
+      font-size: 16px;
+      color: #888;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Flip animation guide */
+    .flip-icon {
+      font-size: 50px;
+      display: none;
+      animation: rotate 2s infinite;
+    }
+
+    @keyframes rotate {
+      0% {
+        transform: rotateY(0);
+      }
+
+      50% {
+        transform: rotateY(180deg);
+      }
+
+      100% {
+        transform: rotateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="message-area">Ready to Play</div>
+  <div id="flip-guide" class="flip-icon">🔄 📱</div>
+
+  <div id="song-info">
+    <h2 id="disp-artist">Artist Name</h2>
+    <h1 id="disp-song">Song Title</h1>
+    <p id="disp-year">2023</p>
+  </div>
+
+  <div id="controls">
+    <button id="btn-scan" class="btn" onclick="startScanner()">SCAN</button>
+
+    <div id="result-controls" style="display:none; margin-top: 15px;">
+      <button id="btn-replay" class="btn btn-secondary" onclick="replaySong()">Replay</button>
+    </div>
+  </div>
+
+  <div id="scan-container">
+    <div id="reader"></div>
+  </div>
+
+  <div id="player-wrapper">
+    <div id="player"></div>
+  </div>
+
+  <button id="btn-install" class="btn" style="display:none; background-color: #333; margin-top: 10px;">
+    📲 Install App
+  </button>
+
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="scan.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    // --- PWA INSTALL LOGIC ---
+    let deferredPrompt;
+    const installBtn = document.getElementById('btn-install');
+
+    // 1. Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log("Service Worker Registered"));
+    }
+
+    // 2. Catch the "install app" event
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      deferredPrompt = e;
+      // Update UI notify the user they can add to home screen
+      installBtn.style.display = 'inline-block';
+    });
+
+    // 3. Trigger install when button clicked
+    installBtn.addEventListener('click', (e) => {
+      // Hide the app provided install promotion
+      installBtn.style.display = 'none';
+      // Show the install prompt
+      deferredPrompt.prompt();
+      // Wait for the user to respond to the prompt
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted the A2HS prompt');
+        }
+        deferredPrompt = null;
+      });
+    });
+
+    // 4. Hide button if already installed
+    window.addEventListener('appinstalled', () => {
+      installBtn.style.display = 'none';
+    });
+  </script>
 </body>
+
 </html>
