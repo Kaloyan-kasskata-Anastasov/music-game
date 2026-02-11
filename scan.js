@@ -1,13 +1,15 @@
 // --- CONFIGURATION ---
-const JSON_URL = "songs.json"; 
+const JSON_URL = "songs.json";
 let songsData = [];
 let html5QrcodeScanner = null;
 let player = null;
 let currentSong = null;
-let currentStartTime = 0; // Stores the specific 30s segment start time
-let scanActive = false;
+let currentStartTime = 0;
 let waitingForFlip = false;
-let stopTimer = null; // Reference to the 30s timer
+let stopTimer = null;
+
+// Month Abbreviations Helper
+const MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // --- 1. LOAD DATA ---
 fetch(JSON_URL)
@@ -26,63 +28,66 @@ function onYouTubeIframeAPIReady() {
         playerVars: {
             'playsinline': 1,
             'controls': 0,
-            'disablekb': 1
+            'disablekb': 1,
+            'origin': window.location.origin
         },
         events: {
-            'onReady': onPlayerReady
+            'onReady': onPlayerReady,
+            'onError': onPlayerError
         }
     });
 }
 
-function onPlayerReady(event) {
-    console.log("YouTube Player Ready");
+function onPlayerReady(event) { console.log("Player Ready"); }
+
+function onPlayerError(event) {
+    let errorMsg = "Error playing video.";
+    if (event.data === 100) errorMsg = "Video not found (deleted/private).";
+    else if (event.data === 101 || event.data === 150) errorMsg = "Owner disabled embedding.";
+
+    alert(errorMsg + "\nTry scanning a different card.");
+    resetGame();
 }
 
 // --- 3. SCANNER LOGIC ---
 function startScanner() {
-    // 1. Clean up previous state
-    resetGame(); 
+    resetGame();
 
-    // 2. UI Updates
     document.getElementById("btn-scan").style.display = "none";
-    document.getElementById("result-controls").style.display = "none";
-    document.getElementById("song-info").style.display = "none";
     document.getElementById("scan-container").style.display = "block";
     document.getElementById("message-area").innerText = "Scan a QR Code";
-    
-    // 3. Permissions (iOS specific)
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+
+    // Permission for iOS Orientation
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
             .then(response => {
-                if (response == 'granted') {
-                    window.addEventListener('deviceorientation', handleOrientation);
-                }
+                if (response == 'granted') window.addEventListener('deviceorientation', handleOrientation);
             })
             .catch(console.error);
     } else {
         window.addEventListener('deviceorientation', handleOrientation);
     }
 
-    // 4. Start Camera
     html5QrcodeScanner = new Html5Qrcode("reader");
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-    
+
     html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
-    .catch(err => {
-        alert("Camera Error: " + err);
-        resetGame(); // Shows SCAN button again if error
-    });
+        .catch(err => {
+            alert("Camera Error: " + err);
+            resetGame();
+        });
 }
 
 function onScanSuccess(decodedText, decodedResult) {
     html5QrcodeScanner.stop().then(() => {
         document.getElementById("scan-container").style.display = "none";
-        
-        let songId = decodedText.split('Id=')[1] || decodedText;
+
+        let songId = decodedText;
+        if (decodedText.includes('Id=')) songId = decodedText.split('Id=')[1];
         songId = parseInt(songId);
 
         currentSong = songsData.find(s => s.id === songId);
-        
+
         if (currentSong) {
             prepareForFlip();
         } else {
@@ -92,30 +97,27 @@ function onScanSuccess(decodedText, decodedResult) {
     }).catch(err => console.error(err));
 }
 
-// --- 4. FLIP DETECTION & PLAYBACK ---
+// --- 4. FLIP & PLAY LOGIC ---
 function prepareForFlip() {
     waitingForFlip = true;
-    document.getElementById("message-area").innerText = "Flip Phone Face Down to Play!";
-    document.getElementById("flip-guide").style.display = "block";
-    
-    // Calculate the random start time NOW (so replay uses the same spot)
-    calculateRandomStart();
+    document.getElementById("message-area").innerText = ""; // Clear text to focus on guide
+    document.getElementById("flip-container").style.display = "block";
 
-    // "Warm up" the player (mute play/pause hack)
-    if(player && player.loadVideoById) {
-        player.mute();
+    // Warm up player
+    if (player && player.loadVideoById) {
         player.loadVideoById(currentSong.vidId);
-        setTimeout(() => { 
-            player.pauseVideo(); 
-            player.unMute(); 
-        }, 500); 
+        player.mute();
+
+        setTimeout(() => {
+            calculateRandomStart();
+            player.pauseVideo();
+            player.unMute();
+        }, 1000);
     }
 }
 
 function calculateRandomStart() {
-    // Default to 0
     currentStartTime = 0;
-    
     if (player && player.getDuration) {
         const duration = player.getDuration();
         if (duration > 90) {
@@ -128,87 +130,88 @@ function calculateRandomStart() {
 
 function handleOrientation(event) {
     if (!waitingForFlip) return;
-
-    // Detect Face Down (>135 or <-135 degrees)
-    const beta = event.beta; 
+    const beta = event.beta;
     if (beta > 135 || beta < -135) {
-        // Phone is flipped!
-        waitingForFlip = false; 
         playAudio();
     }
 }
 
 function playAudio() {
-    if (!currentSong || !player) return;
+    if (!waitingForFlip) return;
+    waitingForFlip = false;
 
-    // 1. UI Feedback
-    document.getElementById("message-area").innerText = "Playing...";
-    document.getElementById("flip-guide").style.display = "none";
+    // UI Updates
+    document.getElementById("flip-container").style.display = "none";
+    document.getElementById("message-area").innerText = "🎶 Playing...";
+
     if (navigator.vibrate) navigator.vibrate(200);
 
-    // 2. Play Video at calculated start time
-    player.seekTo(currentStartTime);
-    player.playVideo();
+    // Play Video
+    if (player && player.seekTo) {
+        player.seekTo(currentStartTime);
+        player.playVideo();
+    }
 
-    // 3. Show Info after 1 second delay
+    // Show Info after 1 second delay
     setTimeout(() => {
         showSongInfo();
     }, 1000);
 
-    // 4. Set timer to stop after 30 seconds
+    // Stop after 30s
     clearTimeout(stopTimer);
     stopTimer = setTimeout(() => {
-        player.stopVideo();
-        document.getElementById("message-area").innerText = "Finished"; 
-    }, 30000); 
+        if (player && player.stopVideo) player.stopVideo();
+        document.getElementById("message-area").innerText = "Time's Up!";
+    }, 30000);
 }
 
 function showSongInfo() {
-    // Populate Data
-    document.getElementById("disp-artist").innerText = currentSong.artist;
-    document.getElementById("disp-song").innerText = currentSong.song;
-    document.getElementById("disp-year").innerText = currentSong.date;
+    // Parse Date (01.1983 -> Jan, 1983)
+    let parts = currentSong.date.split('.');
+    let monthNum = parseInt(parts[0]);
+    let monthAbbr = (monthNum >= 1 && monthNum <= 12) ? MONTHS[monthNum] : "??";
+    let year = parts[1] || "????";
 
-    // Reveal Info & Buttons
+    // Populate Fields
+    document.getElementById("disp-artist").innerText = currentSong.artist;
+    document.getElementById("disp-month").innerText = monthAbbr;
+    document.getElementById("disp-year").innerText = year;
+    document.getElementById("disp-song").innerText = currentSong.song;
+
+    // Reveal UI
     document.getElementById("song-info").style.display = "block";
-    document.getElementById("btn-scan").style.display = "inline-block"; // Show SCAN button
-    document.getElementById("result-controls").style.display = "block"; // Show REPLAY button
+    document.getElementById("btn-scan").style.display = "inline-block";
+    document.getElementById("result-controls").style.display = "block";
 }
 
 // --- 5. CONTROLS ---
 function replaySong() {
     document.getElementById("message-area").innerText = "Replaying...";
-    
-    // Stop any existing stop timer
     clearTimeout(stopTimer);
-    
-    // Play from the SAME start time
+
     player.seekTo(currentStartTime);
     player.playVideo();
 
-    // Set new 30s stop timer
     stopTimer = setTimeout(() => {
         player.stopVideo();
-        document.getElementById("message-area").innerText = "Finished";
+        document.getElementById("message-area").innerText = "Time's Up!";
     }, 30000);
 }
 
 function resetGame() {
-    // Stop audio if playing
-    if (player && player.stopVideo) {
-        player.stopVideo();
-    }
+    if (player && player.stopVideo) player.stopVideo();
     clearTimeout(stopTimer);
 
-    // Reset state
     currentSong = null;
     waitingForFlip = false;
-    
-    // Reset UI to initial state (Scan button visible, info hidden)
+
+    // Hide everything
     document.getElementById("scan-container").style.display = "none";
     document.getElementById("song-info").style.display = "none";
     document.getElementById("result-controls").style.display = "none";
+    document.getElementById("flip-container").style.display = "none";
+
+    // Show Start
     document.getElementById("btn-scan").style.display = "inline-block";
     document.getElementById("message-area").innerText = "Ready to Play";
-    document.getElementById("flip-guide").style.display = "none";
 }
