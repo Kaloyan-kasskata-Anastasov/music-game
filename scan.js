@@ -9,6 +9,7 @@ let stopTimer = null;
 
 const MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+// Load Data
 fetch(JSON_URL)
     .then(response => response.json())
     .then(data => {
@@ -17,6 +18,7 @@ fetch(JSON_URL)
     })
     .catch(err => alert("Error loading songs_fixed.json: " + err));
 
+// YouTube API
 function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {
         height: '300',
@@ -45,14 +47,34 @@ function onPlayerError(event) {
     resetGame();
 }
 
+// --- NEW FUNCTION: WARM UP PLAYER ---
+// This runs exactly when you click "SCAN" to unlock mobile audio
+function warmUpPlayer() {
+    if(player && player.playVideo) {
+        player.mute();
+        player.playVideo();
+        setTimeout(() => {
+            player.pauseVideo();
+            player.unMute(); // Ready for the flip
+        }, 100);
+    }
+}
+
 function startScanner() {
     resetGame(); 
 
-    // Hide the ENTIRE controls container to fix centering
+    // 1. Unlock Audio Context immediately on button click
+    warmUpPlayer();
+
+    // 2. Hide EVERYTHING to center the scanner
     document.getElementById("controls").style.display = "none";
-    document.getElementById("scan-container").style.display = "block";
-    document.getElementById("message-area").innerText = "Scan a QR Code";
+    document.getElementById("message-area").style.display = "none"; // Hide text
+    document.getElementById("btn-install").style.display = "none";  // Hide install btn
     
+    // 3. Show Scanner
+    document.getElementById("scan-container").style.display = "block";
+    
+    // Permission for iOS
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
             .then(response => {
@@ -77,6 +99,9 @@ function onScanSuccess(decodedText, decodedResult) {
     html5QrcodeScanner.stop().then(() => {
         document.getElementById("scan-container").style.display = "none";
         
+        // Restore UI visibility
+        document.getElementById("message-area").style.display = "block";
+        
         let songId = decodedText;
         if (decodedText.includes('Id=')) songId = decodedText.split('Id=')[1];
         songId = parseInt(songId);
@@ -94,18 +119,18 @@ function onScanSuccess(decodedText, decodedResult) {
 
 function prepareForFlip() {
     waitingForFlip = true;
-    document.getElementById("message-area").innerText = "";
+    document.getElementById("message-area").innerText = ""; 
     document.getElementById("flip-container").style.display = "block";
     
+    // Load the actual song now
     if(player && player.loadVideoById) {
         player.loadVideoById(currentSong.vidId);
-        player.mute();
         
+        // Wait briefly for metadata then calculate start time
         setTimeout(() => {
             calculateRandomStart();
-            player.pauseVideo();
-            player.unMute();
-        }, 1000);
+            player.pauseVideo(); 
+        }, 800);
     }
 }
 
@@ -135,10 +160,13 @@ function playAudio() {
 
     document.getElementById("flip-container").style.display = "none";
     document.getElementById("message-area").innerText = "🎶 Playing...";
+    document.getElementById("message-area").style.display = "block";
     
     if (navigator.vibrate) navigator.vibrate(200);
 
     if (player && player.seekTo) {
+        // Ensure unmuted
+        player.unMute();
         player.seekTo(currentStartTime);
         player.playVideo();
     }
@@ -166,10 +194,15 @@ function showSongInfo() {
     document.getElementById("disp-song").innerText = currentSong.song;
 
     document.getElementById("song-info").style.display = "block";
-    
     document.getElementById("controls").style.display = "block";
     document.getElementById("btn-scan").style.display = "inline-block"; 
     document.getElementById("result-controls").style.display = "block"; 
+    
+    // Check install button visibility logic
+    const installBtn = document.getElementById("btn-install");
+    if(installBtn.dataset.canInstall === "true") {
+        installBtn.style.display = "inline-block";
+    }
 }
 
 function replaySong() {
@@ -192,12 +225,23 @@ function resetGame() {
     currentSong = null;
     waitingForFlip = false;
     
+    // Hide Game UI
     document.getElementById("scan-container").style.display = "none";
     document.getElementById("song-info").style.display = "none";
     document.getElementById("result-controls").style.display = "none";
     document.getElementById("flip-container").style.display = "none";
     
+    // Reset to "Ready" state
     document.getElementById("controls").style.display = "block";
     document.getElementById("btn-scan").style.display = "inline-block";
-    document.getElementById("message-area").innerText = "Ready to Play";
+    
+    const msgArea = document.getElementById("message-area");
+    msgArea.style.display = "block";
+    msgArea.innerText = "Ready to Play";
+
+    // Restore Install Button if applicable
+    const installBtn = document.getElementById("btn-install");
+    if(installBtn.dataset.canInstall === "true") {
+        installBtn.style.display = "inline-block";
+    }
 }

@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Music Game Scanner</title>
-    
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1DB954">
@@ -41,7 +40,7 @@
         <div id="reader"></div>
     </div>
 
-    <button id="btn-install">📲 Install App</button>
+    <button id="btn-install" data-can-install="false">📲 Install App</button>
 
     <div id="player-wrapper"><div id="player"></div></div>
 
@@ -54,14 +53,14 @@
         const installBtn = document.getElementById('btn-install');
         
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log('Service Worker Registered'));
+            navigator.serviceWorker.register('sw.js');
         }
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             installBtn.style.display = 'inline-block';
+            installBtn.dataset.canInstall = "true"; // Mark as installable
         });
 
         installBtn.addEventListener('click', (e) => {
@@ -72,6 +71,7 @@
 
         window.addEventListener('appinstalled', () => {
             installBtn.style.display = 'none';
+            installBtn.dataset.canInstall = "false";
         });
     </script>
 </body>

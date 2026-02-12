@@ -1,3 +1,26 @@
+/* ... Keep top part the same ... */
+
+#scan-container { 
+    width: 300px; 
+    height: 300px; 
+    background: #000; 
+    border: 4px solid #333; 
+    border-radius: 20px; 
+    overflow: hidden; 
+    display: none; 
+    
+    /* NEW CENTERING LOGIC */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 999;
+}
+
+/* ... Keep rest the same ... */
+
+/* Full File for safety below: */
+
 body { 
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
     background-color: #121212; 
@@ -10,6 +33,7 @@ body {
     align-items: center;
     height: 100vh; 
     overflow: hidden; 
+    position: relative; /* Needed for absolute positioning context */
 }
 
 #message-area { 
@@ -100,7 +124,6 @@ body {
 
 #controls { 
     margin-top: 40px; 
-    /* This container will be hidden via JS during scan */
 }
 
 .btn {
@@ -139,10 +162,13 @@ body {
     border-radius: 20px; 
     overflow: hidden; 
     display: none; 
-    /* Fix alignment: */
-    margin: 0 auto; 
-    position: relative;
-    z-index: 10;
+    
+    /* Absolute Centering */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 999;
 }
 
 #player-wrapper { 
