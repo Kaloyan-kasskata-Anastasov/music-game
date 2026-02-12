@@ -1,11 +1,11 @@
-const JSON_URL = "songs_fixed.json";
+const JSON_URL = "songs_fixed.json"; 
 let songsData = [];
 let html5QrcodeScanner = null;
 let player = null;
 let currentSong = null;
-let currentStartTime = 0;
+let currentStartTime = 0; 
 let waitingForFlip = false;
-let stopTimer = null;
+let stopTimer = null; 
 
 const MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -25,11 +25,11 @@ function onYouTubeIframeAPIReady() {
             'playsinline': 1,
             'controls': 0,
             'disablekb': 1,
-            'origin': window.location.origin
+            'origin': window.location.origin 
         },
         events: {
             'onReady': onPlayerReady,
-            'onError': onPlayerError
+            'onError': onPlayerError 
         }
     });
 }
@@ -40,18 +40,19 @@ function onPlayerError(event) {
     let errorMsg = "Error playing video.";
     if (event.data === 100) errorMsg = "Video not found.";
     else if (event.data === 101 || event.data === 150) errorMsg = "Owner disabled embedding.";
-
+    
     alert(errorMsg + "\nTry scanning a different card.");
     resetGame();
 }
 
 function startScanner() {
-    resetGame();
+    resetGame(); 
 
-    document.getElementById("btn-scan").style.display = "none";
+    // Hide the ENTIRE controls container to fix centering
+    document.getElementById("controls").style.display = "none";
     document.getElementById("scan-container").style.display = "block";
     document.getElementById("message-area").innerText = "Scan a QR Code";
-
+    
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
             .then(response => {
@@ -64,24 +65,24 @@ function startScanner() {
 
     html5QrcodeScanner = new Html5Qrcode("reader");
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
+    
     html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
-        .catch(err => {
-            alert("Camera Error: " + err);
-            resetGame();
-        });
+    .catch(err => {
+        alert("Camera Error: " + err);
+        resetGame();
+    });
 }
 
 function onScanSuccess(decodedText, decodedResult) {
     html5QrcodeScanner.stop().then(() => {
         document.getElementById("scan-container").style.display = "none";
-
+        
         let songId = decodedText;
         if (decodedText.includes('Id=')) songId = decodedText.split('Id=')[1];
         songId = parseInt(songId);
 
         currentSong = songsData.find(s => s.id === songId);
-
+        
         if (currentSong) {
             prepareForFlip();
         } else {
@@ -95,11 +96,11 @@ function prepareForFlip() {
     waitingForFlip = true;
     document.getElementById("message-area").innerText = "";
     document.getElementById("flip-container").style.display = "block";
-
-    if (player && player.loadVideoById) {
+    
+    if(player && player.loadVideoById) {
         player.loadVideoById(currentSong.vidId);
         player.mute();
-
+        
         setTimeout(() => {
             calculateRandomStart();
             player.pauseVideo();
@@ -122,7 +123,7 @@ function calculateRandomStart() {
 
 function handleOrientation(event) {
     if (!waitingForFlip) return;
-    const beta = event.beta;
+    const beta = event.beta; 
     if (beta > 135 || beta < -135) {
         playAudio();
     }
@@ -134,7 +135,7 @@ function playAudio() {
 
     document.getElementById("flip-container").style.display = "none";
     document.getElementById("message-area").innerText = "🎶 Playing...";
-
+    
     if (navigator.vibrate) navigator.vibrate(200);
 
     if (player && player.seekTo) {
@@ -148,9 +149,9 @@ function playAudio() {
 
     clearTimeout(stopTimer);
     stopTimer = setTimeout(() => {
-        if (player && player.stopVideo) player.stopVideo();
-        document.getElementById("message-area").innerText = "Time's Up!";
-    }, 30000);
+        if(player && player.stopVideo) player.stopVideo();
+        document.getElementById("message-area").innerText = "Time's Up!"; 
+    }, 30000); 
 }
 
 function showSongInfo() {
@@ -165,14 +166,16 @@ function showSongInfo() {
     document.getElementById("disp-song").innerText = currentSong.song;
 
     document.getElementById("song-info").style.display = "block";
-    document.getElementById("btn-scan").style.display = "inline-block";
-    document.getElementById("result-controls").style.display = "block";
+    
+    document.getElementById("controls").style.display = "block";
+    document.getElementById("btn-scan").style.display = "inline-block"; 
+    document.getElementById("result-controls").style.display = "block"; 
 }
 
 function replaySong() {
     document.getElementById("message-area").innerText = "Replaying...";
     clearTimeout(stopTimer);
-
+    
     player.seekTo(currentStartTime);
     player.playVideo();
 
@@ -188,12 +191,13 @@ function resetGame() {
 
     currentSong = null;
     waitingForFlip = false;
-
+    
     document.getElementById("scan-container").style.display = "none";
     document.getElementById("song-info").style.display = "none";
     document.getElementById("result-controls").style.display = "none";
     document.getElementById("flip-container").style.display = "none";
-
+    
+    document.getElementById("controls").style.display = "block";
     document.getElementById("btn-scan").style.display = "inline-block";
     document.getElementById("message-area").innerText = "Ready to Play";
 }
