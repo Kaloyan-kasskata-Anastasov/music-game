@@ -5,14 +5,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Music Game Scanner</title>
-
+  <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1DB954">
   <link rel="apple-touch-icon" href="icon.png">
-  <link rel="stylesheet" type="text/css" class="styles" href="style.css">
 </head>
 
 <body>
+
   <div id="message-area">Ready to Play</div>
 
   <div id="flip-container">
@@ -23,19 +23,16 @@
 
   <div id="song-info">
     <div id="disp-artist" class="info-artist">Artist Name</div>
-
     <div class="info-date-container">
       <span id="disp-month" class="info-month">Jan</span>
       <span class="info-month">.</span>
       <span id="disp-year" class="info-year">1983</span>
     </div>
-
     <div id="disp-song" class="info-title">Song Title</div>
   </div>
 
   <div id="controls">
     <button id="btn-scan" class="btn" onclick="startScanner()">SCAN</button>
-
     <div id="result-controls" style="display:none;">
       <button id="btn-replay" class="btn btn-secondary" onclick="replaySong()">↺ Replay Segment</button>
     </div>
@@ -58,29 +55,19 @@
   <script>
     let deferredPrompt;
     const installBtn = document.getElementById('btn-install');
-
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js')
-        .then(() => console.log("Service Worker Registered"));
+      navigator.serviceWorker.register('sw.js');
     }
-
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
       installBtn.style.display = 'inline-block';
     });
-
     installBtn.addEventListener('click', (e) => {
       installBtn.style.display = 'none';
       deferredPrompt.prompt();
-      deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the install prompt');
-        }
-        deferredPrompt = null;
-      });
+      deferredPrompt = null;
     });
-
     window.addEventListener('appinstalled', () => {
       installBtn.style.display = 'none';
     });

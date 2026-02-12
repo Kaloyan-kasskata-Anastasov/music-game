@@ -15,7 +15,7 @@ fetch(JSON_URL)
         songsData = data;
         console.log(`Loaded ${songsData.length} songs.`);
     })
-    .catch(err => alert(`Error loading ${JSON_URL}: ` + err));
+    .catch(err => alert("Error loading songs_fixed.json: " + err));
 
 function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {
@@ -38,7 +38,7 @@ function onPlayerReady(event) { console.log("Player Ready"); }
 
 function onPlayerError(event) {
     let errorMsg = "Error playing video.";
-    if (event.data === 100) errorMsg = "Video not found (deleted/private).";
+    if (event.data === 100) errorMsg = "Video not found.";
     else if (event.data === 101 || event.data === 150) errorMsg = "Owner disabled embedding.";
 
     alert(errorMsg + "\nTry scanning a different card.");
@@ -52,7 +52,6 @@ function startScanner() {
     document.getElementById("scan-container").style.display = "block";
     document.getElementById("message-area").innerText = "Scan a QR Code";
 
-    // Permission for iOS Orientation
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
             .then(response => {
@@ -94,10 +93,9 @@ function onScanSuccess(decodedText, decodedResult) {
 
 function prepareForFlip() {
     waitingForFlip = true;
-    document.getElementById("message-area").innerText = ""; // Clear text to focus on guide
+    document.getElementById("message-area").innerText = "";
     document.getElementById("flip-container").style.display = "block";
 
-    // Warm up player
     if (player && player.loadVideoById) {
         player.loadVideoById(currentSong.vidId);
         player.mute();
