@@ -1,5 +1,4 @@
-// --- CONFIGURATION ---
-const JSON_URL = "songs.json";
+const JSON_URL = "songs_fixed.json";
 let songsData = [];
 let html5QrcodeScanner = null;
 let player = null;
@@ -8,19 +7,16 @@ let currentStartTime = 0;
 let waitingForFlip = false;
 let stopTimer = null;
 
-// Month Abbreviations Helper
 const MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// --- 1. LOAD DATA ---
 fetch(JSON_URL)
     .then(response => response.json())
     .then(data => {
         songsData = data;
         console.log(`Loaded ${songsData.length} songs.`);
     })
-    .catch(err => alert("Error loading songs.json: " + err));
+    .catch(err => alert(`Error loading ${JSON_URL}: ` + err));
 
-// --- 2. YOUTUBE API SETUP ---
 function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {
         height: '300',
@@ -49,7 +45,6 @@ function onPlayerError(event) {
     resetGame();
 }
 
-// --- 3. SCANNER LOGIC ---
 function startScanner() {
     resetGame();
 
@@ -97,7 +92,6 @@ function onScanSuccess(decodedText, decodedResult) {
     }).catch(err => console.error(err));
 }
 
-// --- 4. FLIP & PLAY LOGIC ---
 function prepareForFlip() {
     waitingForFlip = true;
     document.getElementById("message-area").innerText = ""; // Clear text to focus on guide
@@ -140,24 +134,20 @@ function playAudio() {
     if (!waitingForFlip) return;
     waitingForFlip = false;
 
-    // UI Updates
     document.getElementById("flip-container").style.display = "none";
     document.getElementById("message-area").innerText = "🎶 Playing...";
 
     if (navigator.vibrate) navigator.vibrate(200);
 
-    // Play Video
     if (player && player.seekTo) {
         player.seekTo(currentStartTime);
         player.playVideo();
     }
 
-    // Show Info after 1 second delay
     setTimeout(() => {
         showSongInfo();
     }, 1000);
 
-    // Stop after 30s
     clearTimeout(stopTimer);
     stopTimer = setTimeout(() => {
         if (player && player.stopVideo) player.stopVideo();
@@ -166,25 +156,21 @@ function playAudio() {
 }
 
 function showSongInfo() {
-    // Parse Date (01.1983 -> Jan, 1983)
     let parts = currentSong.date.split('.');
     let monthNum = parseInt(parts[0]);
     let monthAbbr = (monthNum >= 1 && monthNum <= 12) ? MONTHS[monthNum] : "??";
     let year = parts[1] || "????";
 
-    // Populate Fields
     document.getElementById("disp-artist").innerText = currentSong.artist;
     document.getElementById("disp-month").innerText = monthAbbr;
     document.getElementById("disp-year").innerText = year;
     document.getElementById("disp-song").innerText = currentSong.song;
 
-    // Reveal UI
     document.getElementById("song-info").style.display = "block";
     document.getElementById("btn-scan").style.display = "inline-block";
     document.getElementById("result-controls").style.display = "block";
 }
 
-// --- 5. CONTROLS ---
 function replaySong() {
     document.getElementById("message-area").innerText = "Replaying...";
     clearTimeout(stopTimer);
@@ -205,13 +191,11 @@ function resetGame() {
     currentSong = null;
     waitingForFlip = false;
 
-    // Hide everything
     document.getElementById("scan-container").style.display = "none";
     document.getElementById("song-info").style.display = "none";
     document.getElementById("result-controls").style.display = "none";
     document.getElementById("flip-container").style.display = "none";
 
-    // Show Start
     document.getElementById("btn-scan").style.display = "inline-block";
     document.getElementById("message-area").innerText = "Ready to Play";
 }
