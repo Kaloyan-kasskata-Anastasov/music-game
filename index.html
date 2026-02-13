@@ -13,10 +13,9 @@
 
     <div id="message-area">Ready to Play</div>
     
-    <div id="flip-container">
-        <div class="flip-icon">🔄 📱</div>
-        <p style="margin: 10px 0; color: #666; font-size: 14px;">FLIP PHONE FACE DOWN</p>
-        <button id="btn-manual-play" onclick="playAudio()">▶ PLAY NOW</button>
+    <div id="action-container" style="display:none; margin-bottom: 30px;">
+        <button id="btn-play-song" class="btn" onclick="playAudio()">▶ PLAY</button>
+        <button id="btn-reveal" class="btn btn-reveal" style="display:none;" onclick="showSongInfo()">👁 REVEAL</button>
     </div>
 
     <div id="song-info">
@@ -60,7 +59,7 @@
             e.preventDefault();
             deferredPrompt = e;
             installBtn.style.display = 'inline-block';
-            installBtn.dataset.canInstall = "true"; // Mark as installable
+            installBtn.dataset.canInstall = "true";
         });
 
         installBtn.addEventListener('click', (e) => {

@@ -4,7 +4,6 @@ let html5QrcodeScanner = null;
 let player = null;
 let currentSong = null;
 let currentStartTime = 0; 
-let waitingForFlip = false;
 let stopTimer = null; 
 
 const MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -47,44 +46,26 @@ function onPlayerError(event) {
     resetGame();
 }
 
-// --- NEW FUNCTION: WARM UP PLAYER ---
-// This runs exactly when you click "SCAN" to unlock mobile audio
 function warmUpPlayer() {
     if(player && player.playVideo) {
         player.mute();
         player.playVideo();
         setTimeout(() => {
             player.pauseVideo();
-            player.unMute(); // Ready for the flip
+            player.unMute(); 
         }, 100);
     }
 }
 
 function startScanner() {
     resetGame(); 
-
-    // 1. Unlock Audio Context immediately on button click
     warmUpPlayer();
 
-    // 2. Hide EVERYTHING to center the scanner
     document.getElementById("controls").style.display = "none";
-    document.getElementById("message-area").style.display = "none"; // Hide text
-    document.getElementById("btn-install").style.display = "none";  // Hide install btn
-    
-    // 3. Show Scanner
+    document.getElementById("message-area").style.display = "none"; 
+    document.getElementById("btn-install").style.display = "none";  
     document.getElementById("scan-container").style.display = "block";
     
-    // Permission for iOS
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission()
-            .then(response => {
-                if (response == 'granted') window.addEventListener('deviceorientation', handleOrientation);
-            })
-            .catch(console.error);
-    } else {
-        window.addEventListener('deviceorientation', handleOrientation);
-    }
-
     html5QrcodeScanner = new Html5Qrcode("reader");
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     
@@ -98,8 +79,6 @@ function startScanner() {
 function onScanSuccess(decodedText, decodedResult) {
     html5QrcodeScanner.stop().then(() => {
         document.getElementById("scan-container").style.display = "none";
-        
-        // Restore UI visibility
         document.getElementById("message-area").style.display = "block";
         
         let songId = decodedText;
@@ -109,7 +88,7 @@ function onScanSuccess(decodedText, decodedResult) {
         currentSong = songsData.find(s => s.id === songId);
         
         if (currentSong) {
-            prepareForFlip();
+            prepareToPlay();
         } else {
             alert("Song ID not found!");
             resetGame();
@@ -117,16 +96,17 @@ function onScanSuccess(decodedText, decodedResult) {
     }).catch(err => console.error(err));
 }
 
-function prepareForFlip() {
-    waitingForFlip = true;
-    document.getElementById("message-area").innerText = ""; 
-    document.getElementById("flip-container").style.display = "block";
+function prepareToPlay() {
+    document.getElementById("message-area").innerText = "Card Scanned!"; 
     
-    // Load the actual song now
+    // Show Action Container & Play Button
+    document.getElementById("action-container").style.display = "block";
+    document.getElementById("btn-play-song").style.display = "inline-block";
+    document.getElementById("btn-reveal").style.display = "none";
+    
     if(player && player.loadVideoById) {
         player.loadVideoById(currentSong.vidId);
         
-        // Wait briefly for metadata then calculate start time
         setTimeout(() => {
             calculateRandomStart();
             player.pauseVideo(); 
@@ -146,43 +126,36 @@ function calculateRandomStart() {
     }
 }
 
-function handleOrientation(event) {
-    if (!waitingForFlip) return;
-    const beta = event.beta; 
-    if (beta > 135 || beta < -135) {
-        playAudio();
-    }
-}
-
 function playAudio() {
-    if (!waitingForFlip) return;
-    waitingForFlip = false;
-
-    document.getElementById("flip-container").style.display = "none";
+    // Hide Play, Show Reveal
+    document.getElementById("btn-play-song").style.display = "none";
+    document.getElementById("btn-reveal").style.display = "inline-block";
     document.getElementById("message-area").innerText = "🎶 Playing...";
-    document.getElementById("message-area").style.display = "block";
     
     if (navigator.vibrate) navigator.vibrate(200);
 
     if (player && player.seekTo) {
-        // Ensure unmuted
         player.unMute();
         player.seekTo(currentStartTime);
         player.playVideo();
     }
 
-    setTimeout(() => {
-        showSongInfo();
-    }, 1000);
-
     clearTimeout(stopTimer);
     stopTimer = setTimeout(() => {
         if(player && player.stopVideo) player.stopVideo();
-        document.getElementById("message-area").innerText = "Time's Up!"; 
+        
+        // Only change text if they haven't revealed it yet
+        if(document.getElementById("song-info").style.display === "none") {
+            document.getElementById("message-area").innerText = "Time's Up! Click Reveal."; 
+        }
     }, 30000); 
 }
 
 function showSongInfo() {
+    // Hide Action Container completely
+    document.getElementById("action-container").style.display = "none";
+    document.getElementById("message-area").innerText = "Answer Revealed!";
+
     let parts = currentSong.date.split('.');
     let monthNum = parseInt(parts[0]);
     let monthAbbr = (monthNum >= 1 && monthNum <= 12) ? MONTHS[monthNum] : "??";
@@ -193,12 +166,14 @@ function showSongInfo() {
     document.getElementById("disp-year").innerText = year;
     document.getElementById("disp-song").innerText = currentSong.song;
 
+    // Show the data
     document.getElementById("song-info").style.display = "block";
+    
+    // Show replay & scan next controls
     document.getElementById("controls").style.display = "block";
     document.getElementById("btn-scan").style.display = "inline-block"; 
     document.getElementById("result-controls").style.display = "block"; 
     
-    // Check install button visibility logic
     const installBtn = document.getElementById("btn-install");
     if(installBtn.dataset.canInstall === "true") {
         installBtn.style.display = "inline-block";
@@ -214,7 +189,7 @@ function replaySong() {
 
     stopTimer = setTimeout(() => {
         player.stopVideo();
-        document.getElementById("message-area").innerText = "Time's Up!";
+        document.getElementById("message-area").innerText = "Answer Revealed!";
     }, 30000);
 }
 
@@ -223,13 +198,12 @@ function resetGame() {
     clearTimeout(stopTimer);
 
     currentSong = null;
-    waitingForFlip = false;
     
     // Hide Game UI
     document.getElementById("scan-container").style.display = "none";
     document.getElementById("song-info").style.display = "none";
     document.getElementById("result-controls").style.display = "none";
-    document.getElementById("flip-container").style.display = "none";
+    document.getElementById("action-container").style.display = "none";
     
     // Reset to "Ready" state
     document.getElementById("controls").style.display = "block";
@@ -239,7 +213,6 @@ function resetGame() {
     msgArea.style.display = "block";
     msgArea.innerText = "Ready to Play";
 
-    // Restore Install Button if applicable
     const installBtn = document.getElementById("btn-install");
     if(installBtn.dataset.canInstall === "true") {
         installBtn.style.display = "inline-block";
