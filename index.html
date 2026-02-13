@@ -25,20 +25,20 @@
 
     <div id="main-controls">
         
-        <button id="btn-scan" class="btn" onclick="startScanner()">SCAN CARD</button>
+        <button id="btn-scan" class="btn" onclick="startScanner()">SCAN</button>
 
-        <button id="btn-play-song" class="btn" style="display:none;" onclick="playAudio()">▶ PLAY SONG</button>
+        <button id="btn-play-song" class="btn" style="display:none;" onclick="playAudio()">PLAY</button>
 
         <div id="active-game-controls" style="display:none; flex-direction: column; align-items: center; width: 100%; max-width: 320px;">
             
-            <button id="btn-reveal" class="btn btn-reveal" onclick="showSongInfo()">👁 REVEAL ANSWER</button>
+            <button id="btn-reveal" class="btn btn-reveal" onclick="showSongInfo()">👁️ ANSWER</button>
             
             <div class="control-row">
-                <button id="btn-pause" class="btn-secondary" onclick="togglePause()">⏸ PAUSE</button>
-                <button id="btn-replay" class="btn-secondary" onclick="replaySong()">↺ REPLAY</button>
+                <button id="btn-pause" class="btn-secondary" onclick="togglePause()">⏸</button>
+                <button id="btn-replay" class="btn-secondary" onclick="replaySong()">↺</button>
             </div>
             
-            <button id="btn-scan-next" class="btn-secondary" style="margin-top: 10px; width: 100%; background-color: #222;" onclick="startScanner()">📷 SCAN NEW CARD</button>
+            <button id="btn-scan-next" class="btn-secondary" style="margin-top: 10px; width: 100%;" onclick="startScanner()">SCAN</button>
         </div>
 
     </div>
@@ -47,7 +47,7 @@
         <div id="reader"></div>
     </div>
 
-    <button id="btn-install" data-can-install="false">📲 Install App</button>
+    <button id="btn-install" data-can-install="false">📲 Install as App</button>
 
     <div id="player-wrapper"><div id="player"></div></div>
 

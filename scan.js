@@ -1,4 +1,7 @@
 const JSON_URL = "songs_fixed.json"; 
+const PAUSE = "⏸";
+const PLAY = "▶";
+const REPEAT = "↺";
 let songsData = [];
 let html5QrcodeScanner = null;
 let player = null;
@@ -8,7 +11,6 @@ let stopTimer = null;
 
 const MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// Load Data
 fetch(JSON_URL)
     .then(response => response.json())
     .then(data => {
@@ -17,7 +19,6 @@ fetch(JSON_URL)
     })
     .catch(err => alert("Error loading songs_fixed.json: " + err));
 
-// YouTube API
 function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {
         height: '300',
@@ -98,7 +99,7 @@ function onScanSuccess(decodedText, decodedResult) {
 }
 
 function prepareToPlay() {
-    document.getElementById("message-area").innerText = "Card Scanned!"; 
+    document.getElementById("message-area").innerText = "Scanned!"; 
     
     document.getElementById("btn-scan").style.display = "none";
     document.getElementById("btn-play-song").style.display = "block";
@@ -130,7 +131,7 @@ function playAudio() {
     document.getElementById("btn-play-song").style.display = "none";
     document.getElementById("active-game-controls").style.display = "flex";
     document.getElementById("btn-reveal").style.display = "block";
-    document.getElementById("btn-pause").innerText = "⏸ PAUSE";
+    document.getElementById("btn-pause").innerText = PAUSE;
     document.getElementById("message-area").innerText = "🎶 Playing...";
     
     if (navigator.vibrate) navigator.vibrate(200);
@@ -148,21 +149,21 @@ function playAudio() {
 function togglePause() {
     if (player) {
         let state = player.getPlayerState();
-        if (state === 1) { // 1 = Playing
+        if (state === 1) {
             player.pauseVideo();
-            document.getElementById("btn-pause").innerText = "▶ RESUME";
-            clearTimeout(stopTimer); // Stop the 30s countdown while paused
+            document.getElementById("btn-pause").innerText = PLAY;
+            clearTimeout(stopTimer);
         } else {
             player.playVideo();
-            document.getElementById("btn-pause").innerText = "⏸ PAUSE";
-            startStopTimer(); // Restart the 30s timer
+            document.getElementById("btn-pause").innerText = PAUSE;
+            startStopTimer();
         }
     }
 }
 
 function replaySong() {
-    document.getElementById("message-area").innerText = "Replaying...";
-    document.getElementById("btn-pause").innerText = "⏸ PAUSE";
+    document.getElementById("message-area").innerText = "Replaying";
+    document.getElementById("btn-pause").innerText = PAUSE;
     
     player.seekTo(currentStartTime);
     player.playVideo();
@@ -175,16 +176,16 @@ function startStopTimer() {
     stopTimer = setTimeout(() => {
         if(player && player.stopVideo) player.stopVideo();
         
-        document.getElementById("btn-pause").innerText = "▶ RESUME"; // Update button state
+        document.getElementById("btn-pause").innerText = PLAY;
         
         if(document.getElementById("song-info").style.display === "none") {
-            document.getElementById("message-area").innerText = "Time's Up! Guess or Reveal."; 
+            document.getElementById("message-area").innerText = ""; 
         }
     }, 30000); 
 }
 
 function showSongInfo() {
-    document.getElementById("message-area").innerText = "Answer Revealed!";
+    document.getElementById("message-area").innerText = "Answer";
 
     let parts = currentSong.date.split('.');
     let monthNum = parseInt(parts[0]);
@@ -196,7 +197,6 @@ function showSongInfo() {
     document.getElementById("disp-year").innerText = year;
     document.getElementById("disp-song").innerText = currentSong.song;
 
-    // Show Data, Hide Reveal Button (keep playback/scan controls visible)
     document.getElementById("song-info").style.display = "block";
     document.getElementById("btn-reveal").style.display = "none";
     
@@ -212,7 +212,6 @@ function resetGame() {
 
     currentSong = null;
     
-    // Reset all UI
     document.getElementById("scan-container").style.display = "none";
     document.getElementById("song-info").style.display = "none";
     document.getElementById("active-game-controls").style.display = "none";
