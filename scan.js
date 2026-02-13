@@ -61,7 +61,7 @@ function startScanner() {
     resetGame(); 
     warmUpPlayer();
 
-    document.getElementById("controls").style.display = "none";
+    document.getElementById("main-controls").style.display = "none";
     document.getElementById("message-area").style.display = "none"; 
     document.getElementById("btn-install").style.display = "none";  
     document.getElementById("scan-container").style.display = "block";
@@ -80,6 +80,7 @@ function onScanSuccess(decodedText, decodedResult) {
     html5QrcodeScanner.stop().then(() => {
         document.getElementById("scan-container").style.display = "none";
         document.getElementById("message-area").style.display = "block";
+        document.getElementById("main-controls").style.display = "flex";
         
         let songId = decodedText;
         if (decodedText.includes('Id=')) songId = decodedText.split('Id=')[1];
@@ -99,10 +100,8 @@ function onScanSuccess(decodedText, decodedResult) {
 function prepareToPlay() {
     document.getElementById("message-area").innerText = "Card Scanned!"; 
     
-    // Show Action Container & Play Button
-    document.getElementById("action-container").style.display = "block";
-    document.getElementById("btn-play-song").style.display = "inline-block";
-    document.getElementById("btn-reveal").style.display = "none";
+    document.getElementById("btn-scan").style.display = "none";
+    document.getElementById("btn-play-song").style.display = "block";
     
     if(player && player.loadVideoById) {
         player.loadVideoById(currentSong.vidId);
@@ -127,33 +126,64 @@ function calculateRandomStart() {
 }
 
 function playAudio() {
-    // Hide Play, Show Reveal
+    // UI Updates
     document.getElementById("btn-play-song").style.display = "none";
-    document.getElementById("btn-reveal").style.display = "inline-block";
+    document.getElementById("active-game-controls").style.display = "flex";
+    document.getElementById("btn-reveal").style.display = "block";
+    document.getElementById("btn-pause").innerText = "⏸ PAUSE";
     document.getElementById("message-area").innerText = "🎶 Playing...";
     
     if (navigator.vibrate) navigator.vibrate(200);
 
+    // Audio Playback
     if (player && player.seekTo) {
         player.unMute();
         player.seekTo(currentStartTime);
         player.playVideo();
     }
 
+    startStopTimer();
+}
+
+function togglePause() {
+    if (player) {
+        let state = player.getPlayerState();
+        if (state === 1) { // 1 = Playing
+            player.pauseVideo();
+            document.getElementById("btn-pause").innerText = "▶ RESUME";
+            clearTimeout(stopTimer); // Stop the 30s countdown while paused
+        } else {
+            player.playVideo();
+            document.getElementById("btn-pause").innerText = "⏸ PAUSE";
+            startStopTimer(); // Restart the 30s timer
+        }
+    }
+}
+
+function replaySong() {
+    document.getElementById("message-area").innerText = "Replaying...";
+    document.getElementById("btn-pause").innerText = "⏸ PAUSE";
+    
+    player.seekTo(currentStartTime);
+    player.playVideo();
+
+    startStopTimer();
+}
+
+function startStopTimer() {
     clearTimeout(stopTimer);
     stopTimer = setTimeout(() => {
         if(player && player.stopVideo) player.stopVideo();
         
-        // Only change text if they haven't revealed it yet
+        document.getElementById("btn-pause").innerText = "▶ RESUME"; // Update button state
+        
         if(document.getElementById("song-info").style.display === "none") {
-            document.getElementById("message-area").innerText = "Time's Up! Click Reveal."; 
+            document.getElementById("message-area").innerText = "Time's Up! Guess or Reveal."; 
         }
     }, 30000); 
 }
 
 function showSongInfo() {
-    // Hide Action Container completely
-    document.getElementById("action-container").style.display = "none";
     document.getElementById("message-area").innerText = "Answer Revealed!";
 
     let parts = currentSong.date.split('.');
@@ -166,31 +196,14 @@ function showSongInfo() {
     document.getElementById("disp-year").innerText = year;
     document.getElementById("disp-song").innerText = currentSong.song;
 
-    // Show the data
+    // Show Data, Hide Reveal Button (keep playback/scan controls visible)
     document.getElementById("song-info").style.display = "block";
-    
-    // Show replay & scan next controls
-    document.getElementById("controls").style.display = "block";
-    document.getElementById("btn-scan").style.display = "inline-block"; 
-    document.getElementById("result-controls").style.display = "block"; 
+    document.getElementById("btn-reveal").style.display = "none";
     
     const installBtn = document.getElementById("btn-install");
     if(installBtn.dataset.canInstall === "true") {
         installBtn.style.display = "inline-block";
     }
-}
-
-function replaySong() {
-    document.getElementById("message-area").innerText = "Replaying...";
-    clearTimeout(stopTimer);
-    
-    player.seekTo(currentStartTime);
-    player.playVideo();
-
-    stopTimer = setTimeout(() => {
-        player.stopVideo();
-        document.getElementById("message-area").innerText = "Answer Revealed!";
-    }, 30000);
 }
 
 function resetGame() {
@@ -199,15 +212,14 @@ function resetGame() {
 
     currentSong = null;
     
-    // Hide Game UI
+    // Reset all UI
     document.getElementById("scan-container").style.display = "none";
     document.getElementById("song-info").style.display = "none";
-    document.getElementById("result-controls").style.display = "none";
-    document.getElementById("action-container").style.display = "none";
+    document.getElementById("active-game-controls").style.display = "none";
+    document.getElementById("btn-play-song").style.display = "none";
     
-    // Reset to "Ready" state
-    document.getElementById("controls").style.display = "block";
-    document.getElementById("btn-scan").style.display = "inline-block";
+    document.getElementById("main-controls").style.display = "flex";
+    document.getElementById("btn-scan").style.display = "block";
     
     const msgArea = document.getElementById("message-area");
     msgArea.style.display = "block";

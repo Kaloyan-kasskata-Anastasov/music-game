@@ -12,11 +12,6 @@
 <body>
 
     <div id="message-area">Ready to Play</div>
-    
-    <div id="action-container" style="display:none; margin-bottom: 30px;">
-        <button id="btn-play-song" class="btn" onclick="playAudio()">▶ PLAY</button>
-        <button id="btn-reveal" class="btn btn-reveal" style="display:none;" onclick="showSongInfo()">👁 REVEAL</button>
-    </div>
 
     <div id="song-info">
         <div id="disp-artist" class="info-artist">Artist Name</div>
@@ -28,11 +23,24 @@
         <div id="disp-song" class="info-title">Song Title</div>
     </div>
 
-    <div id="controls">
-        <button id="btn-scan" class="btn" onclick="startScanner()">SCAN</button>
-        <div id="result-controls" style="display:none;">
-            <button id="btn-replay" class="btn btn-secondary" onclick="replaySong()">↺ Replay Segment</button>
+    <div id="main-controls">
+        
+        <button id="btn-scan" class="btn" onclick="startScanner()">SCAN CARD</button>
+
+        <button id="btn-play-song" class="btn" style="display:none;" onclick="playAudio()">▶ PLAY SONG</button>
+
+        <div id="active-game-controls" style="display:none; flex-direction: column; align-items: center; width: 100%; max-width: 320px;">
+            
+            <button id="btn-reveal" class="btn btn-reveal" onclick="showSongInfo()">👁 REVEAL ANSWER</button>
+            
+            <div class="control-row">
+                <button id="btn-pause" class="btn-secondary" onclick="togglePause()">⏸ PAUSE</button>
+                <button id="btn-replay" class="btn-secondary" onclick="replaySong()">↺ REPLAY</button>
+            </div>
+            
+            <button id="btn-scan-next" class="btn-secondary" style="margin-top: 10px; width: 100%; background-color: #222;" onclick="startScanner()">📷 SCAN NEW CARD</button>
         </div>
+
     </div>
 
     <div id="scan-container">
