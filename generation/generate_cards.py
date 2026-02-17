@@ -39,7 +39,7 @@ from reportlab.lib.utils import ImageReader
 from io import BytesIO
 
 # --- 3. CONFIGURATION ---
-JSON_FILE = "../songs_original.json"
+JSON_FILE = "songs_original.json"
 OUTPUT_PDF = "song_cards.pdf"
 BASE_URL = "https://kaloyan-kasskata-anastasov.github.io/music-game/index?Id="
 

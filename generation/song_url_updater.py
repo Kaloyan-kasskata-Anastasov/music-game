@@ -3,8 +3,8 @@ import os
 import time
 import yt_dlp
 
-INPUT_FILE = "../songs_original.json"       
-OUTPUT_FILE = "../songs_fixed.json"
+INPUT_FILE = "songs_original.json"       
+OUTPUT_FILE = "songs_fixed.json"
 
 VALIDATE_OPTS = {
     'quiet': True,

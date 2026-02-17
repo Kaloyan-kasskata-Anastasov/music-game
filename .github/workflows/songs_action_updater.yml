@@ -24,10 +24,10 @@ jobs:
           python-version: '3.9'
 
       - name: Install dependencies
-        run: pip install -r generation/requirements.txt
+        run: pip install -r ./generation/requirements.txt
 
       - name: Run updater script
-        run: python generation/song_url_updater.py
+        run: python ./generation/song_url_updater.py
 
       - name: Commit and push changes
         env:
