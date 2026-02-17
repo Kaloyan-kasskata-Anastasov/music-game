@@ -118,10 +118,12 @@ function calculateRandomStart() {
     currentStartTime = 0;
     if (player && player.getDuration) {
         const duration = player.getDuration();
-        if (duration > 90) {
-            const minStart = 30;
+        if (duration > 110) { 
+            const minStart = 50;
             const maxStart = duration - 60;
             currentStartTime = Math.floor(Math.random() * (maxStart - minStart + 1) + minStart);
+        } else {
+            currentStartTime = 0; 
         }
     }
 }
