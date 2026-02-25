@@ -2,8 +2,8 @@ import subprocess
 import sys
 import importlib.util
 import os
-import calendar
 import json
+import urllib.request
 import qrcode
 from io import BytesIO
 
@@ -33,6 +33,8 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 # --- 3. CONFIGURATION ---
 JSON_FILE = "songs_original.json"
@@ -42,7 +44,7 @@ BASE_URL = "https://kaloyan-kasskata-anastasov.github.io/music-game/index?Id="
 # --- LAYOUT SETTINGS ---
 CARD_WIDTH = 6.4 * cm
 CARD_HEIGHT = 6.4 * cm
-PADDING = 0.5 * cm      # 5mm internal padding for text
+PADDING = 0.5 * cm      
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 
@@ -51,15 +53,34 @@ ROWS = 4
 GRID_WIDTH = COLS * CARD_WIDTH
 GRID_HEIGHT = ROWS * CARD_HEIGHT
 
-# --- ZERO MARGIN POSITIONING ---
-# Start exactly at the edge of the paper
 FRONT_MARGIN_X = 0.0
 TOP_MARGIN_Y = 0.0
-
-# CALCULATE MIRROR MARGIN FOR BACK PAGE
-# Since Front starts at 0 (Left Edge), Back must start at (Page Width - Grid Width) (Right Edge)
-# to align perfectly when printed double-sided.
 BACK_MARGIN_X = PAGE_WIDTH - GRID_WIDTH
+
+def setup_fonts():
+    """Downloads and registers fonts with Cyrillic support."""
+    # Using reliable raw GitHub links from the matplotlib repository
+    reg_url = "https://raw.githubusercontent.com/matplotlib/matplotlib/main/lib/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf"
+    bold_url = "https://raw.githubusercontent.com/matplotlib/matplotlib/main/lib/matplotlib/mpl-data/fonts/ttf/DejaVuSans-Bold.ttf"
+    
+    if not os.path.exists("DejaVuSans.ttf"):
+        print("Downloading font (Regular)...")
+        try:
+            urllib.request.urlretrieve(reg_url, "DejaVuSans.ttf")
+        except Exception as e:
+            print(f"Failed to download Regular font. Error: {e}")
+            sys.exit(1)
+            
+    if not os.path.exists("DejaVuSans-Bold.ttf"):
+        print("Downloading font (Bold)...")
+        try:
+            urllib.request.urlretrieve(bold_url, "DejaVuSans-Bold.ttf")
+        except Exception as e:
+            print(f"Failed to download Bold font. Error: {e}")
+            sys.exit(1)
+        
+    pdfmetrics.registerFont(TTFont('Cyrillic-Regular', 'DejaVuSans.ttf'))
+    pdfmetrics.registerFont(TTFont('Cyrillic-Bold', 'DejaVuSans-Bold.ttf'))
 
 def load_data():
     if not os.path.exists(JSON_FILE):
@@ -68,17 +89,7 @@ def load_data():
     with open(JSON_FILE, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-def get_month_abbr(month_str):
-    try:
-        month_int = int(month_str)
-        if 1 <= month_int <= 12:
-            return calendar.month_abbr[month_int]
-        return month_str
-    except ValueError:
-        return month_str
-
 def draw_card_border(c, x, y):
-    """Draws the shared border around the card."""
     c.setStrokeColor(colors.black)
     c.setLineWidth(1)
     c.rect(x, y, CARD_WIDTH, CARD_HEIGHT)
@@ -89,59 +100,46 @@ def draw_front(c, x, y, song_data):
     cx = x + CARD_WIDTH / 2
     max_text_width = CARD_WIDTH - (2 * PADDING)
     
-    # --- Artist (Top) ---
+    # --- 1. Artist (Top) ---
     c.setFillColor(colors.black)
     artist_text = song_data['artist']
-    artist_size = 18
-    c.setFont("Helvetica-Bold", artist_size)
+    artist_size = 22
+    c.setFont("Cyrillic-Bold", artist_size)
     
-    while c.stringWidth(artist_text, "Helvetica-Bold", artist_size) > max_text_width and artist_size > 8:
+    while c.stringWidth(artist_text, "Cyrillic-Bold", artist_size) > max_text_width and artist_size > 8:
         artist_size -= 1
-        c.setFont("Helvetica-Bold", artist_size)
+        c.setFont("Cyrillic-Bold", artist_size)
         
-    c.drawCentredString(cx, y + CARD_HEIGHT - PADDING - 0.6 * cm, artist_text)
+    c.drawCentredString(cx, y + CARD_HEIGHT - PADDING - 0.7 * cm, artist_text)
     
-    # --- Date (Middle) ---
+    # --- 2. Year (Middle) ---
     date_parts = song_data['date'].split('.') 
-    month_raw = date_parts[0] if len(date_parts) > 0 else "??"
-    year = date_parts[1] if len(date_parts) > 1 else "????"
-    month = get_month_abbr(month_raw)
+    year = date_parts[1] if len(date_parts) > 1 else song_data['date']
 
-    font_month_size = 14          
-    font_year_size = 36           
-
-    w_month = c.stringWidth(month, "Helvetica", font_month_size)
-    w_dot   = c.stringWidth(".", "Helvetica", font_month_size)
-    w_year  = c.stringWidth(year, "Helvetica-Bold", font_year_size)
+    font_year_size = 44
+    c.setFont("Cyrillic-Bold", font_year_size)
     
-    total_date_width = w_month + w_dot + w_year
-    start_x = cx - (total_date_width / 2)
-    base_y = y + (CARD_HEIGHT / 2) - 0.3 * cm
+    base_y = y + (CARD_HEIGHT / 2) - 0.4 * cm
+    c.drawCentredString(cx, base_y, year)
 
-    c.setFont("Helvetica", font_month_size)
-    c.drawString(start_x, base_y, month)
-    c.drawString(start_x + w_month, base_y, ".")
-    c.setFont("Helvetica-Bold", font_year_size)
-    c.drawString(start_x + w_month + w_dot, base_y, year)
-
-    # --- Title (Bottom) ---
+    # --- 3. Title (Bottom) ---
     title_text = song_data['song']
-    title_size = 14
-    c.setFont("Helvetica", title_size)
-    while c.stringWidth(title_text, "Helvetica", title_size) > max_text_width and title_size > 8:
+    title_size = 18
+    c.setFont("Cyrillic-Regular", title_size)
+    
+    while c.stringWidth(title_text, "Cyrillic-Regular", title_size) > max_text_width and title_size > 8:
         title_size -= 1
-        c.setFont("Helvetica", title_size)
+        c.setFont("Cyrillic-Regular", title_size)
     
-    c.drawCentredString(cx, y + PADDING + 0.5 * cm, title_text)
+    c.drawCentredString(cx, y + PADDING + 0.6 * cm, title_text)
     
-    # --- ID (Bottom Right) ---
-    c.setFont("Helvetica", 6)
+    # --- 4. ID (Bottom Right) ---
+    c.setFont("Cyrillic-Regular", 7)
     c.drawRightString(x + CARD_WIDTH - PADDING, y + PADDING / 2, f"ID: {song_data['id']}")
 
 def draw_back(c, x, y, song_data):
     draw_card_border(c, x, y)
     
-    # Generate QR
     qr = qrcode.QRCode(border=0)
     qr.add_data(f"{BASE_URL}{song_data['id']}")
     qr.make(fit=True)
@@ -152,7 +150,6 @@ def draw_back(c, x, y, song_data):
     img_buffer.seek(0)
     rl_img = ImageReader(img_buffer)
     
-    # QR Size fits inside padding
     qr_size = CARD_WIDTH - (2 * PADDING)
     qx = x + PADDING
     qy = y + PADDING
@@ -160,6 +157,9 @@ def draw_back(c, x, y, song_data):
     c.drawImage(rl_img, qx, qy, width=qr_size, height=qr_size)
 
 def generate_pdf():
+    print("Setting up fonts...")
+    setup_fonts()
+    
     print("Loading data...")
     data = load_data()
     
@@ -177,9 +177,7 @@ def generate_pdf():
             row = idx // COLS
             col = idx % COLS
             
-            # Position: Absolute Top-Left
             x = FRONT_MARGIN_X + (col * CARD_WIDTH)
-            # Y starts from TOP of page (PAGE_HEIGHT) and goes down
             y = PAGE_HEIGHT - TOP_MARGIN_Y - ((row + 1) * CARD_HEIGHT)
             
             draw_front(c, x, y, song)
@@ -191,10 +189,8 @@ def generate_pdf():
             row = idx // COLS
             col = idx % COLS
             
-            # MIRROR: Left column becomes Right column
             mirror_col = (COLS - 1) - col
             
-            # BACK_MARGIN_X aligns the grid to the RIGHT edge of the page
             x = BACK_MARGIN_X + (mirror_col * CARD_WIDTH)
             y = PAGE_HEIGHT - TOP_MARGIN_Y - ((row + 1) * CARD_HEIGHT)
             
@@ -204,7 +200,6 @@ def generate_pdf():
 
     c.save()
     print(f"Success! Generated '{OUTPUT_PDF}'.")
-    print(f"Margins: 0cm. Start cutting from the Top-Left edge.")
 
 if __name__ == "__main__":
     generate_pdf()
