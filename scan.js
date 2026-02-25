@@ -1,4 +1,4 @@
-const JSON_URL = "songs_fixed.json"; 
+const JSON_URL = "songs_original.json"; 
 const PAUSE = "⏸";
 const PLAY = "▶";
 const REPEAT = "↺";
@@ -17,7 +17,7 @@ fetch(JSON_URL)
         songsData = data;
         console.log(`Loaded ${songsData.length} songs.`);
     })
-    .catch(err => alert("Error loading songs_fixed.json: " + err));
+    .catch(err => alert("Error loading songs_original.json: " + err));
 
 function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {

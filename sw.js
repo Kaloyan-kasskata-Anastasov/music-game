@@ -5,7 +5,7 @@ const ASSETS = [
   "./index.html",
   "./style.css",
   "./scan.js",
-  "./songs_fixed.json", 
+  "./songs_original.json", 
   "./manifest.json",
   "https://unpkg.com/html5-qrcode" 
 ];

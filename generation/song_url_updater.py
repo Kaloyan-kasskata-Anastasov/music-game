@@ -4,7 +4,7 @@ import time
 import requests
 
 INPUT_FILE = "songs_original.json"       
-OUTPUT_FILE = "songs_fixed.json"
+OUTPUT_FILE = "songs_original.json"
 
 # Grab the API key from the GitHub Action environment variable
 API_KEY = os.getenv("YOUTUBE_API_KEY")
