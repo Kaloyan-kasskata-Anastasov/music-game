@@ -1,52 +1,52 @@
 import json
 import os
 import time
-import yt_dlp
+import requests
 
 INPUT_FILE = "songs_original.json"       
 OUTPUT_FILE = "songs_fixed.json"
 
-VALIDATE_OPTS = {
-    'quiet': True,
-    'no_warnings': True,
-    'skip_download': True,
-    'check_formats': False, 
-    'ignoreerrors': False, 
-}
-
-SEARCH_OPTS = {
-    'quiet': True,
-    'no_warnings': True,
-    'default_search': 'ytsearch1',
-    'noplaylist': True,
-    'skip_download': True,
-}
+# Grab the API key from the GitHub Action environment variable
+API_KEY = os.getenv("YOUTUBE_API_KEY")
 
 def is_video_valid(video_id):
-    """Checks if a video ID is valid and accessible."""
+    """Checks if a video ID is valid, public, and embeddable using the YouTube API."""
     if not video_id or video_id == "NONE":
         return False
         
-    url = f"https://www.youtube.com/watch?v={video_id}"
+    url = f"https://www.googleapis.com/youtube/v3/videos?id={video_id}&key={API_KEY}&part=status"
+    
     try:
-        with yt_dlp.YoutubeDL(VALIDATE_OPTS) as ydl:
-            info = ydl.extract_info(url, download=False)
-            if 'title' in info and info.get('duration', 0) > 0:
-                return True
+        response = requests.get(url)
+        data = response.json()
+        
+        if not data.get("items"):
+            return False
+            
+        status = data["items"][0].get("status", {})
+        if status.get("privacyStatus") == "public" and status.get("embeddable"):
+            return True
+            
     except Exception:
         pass 
+        
     return False
 
 def get_replacement_id(artist, song):
-    """Searches for 'Artist Song Lyrics'."""
+    """Searches for 'Artist Song lyrics' and returns the top video ID."""
     query = f"{artist} {song} lyrics"
+    url = f"https://www.googleapis.com/youtube/v3/search?q={query}&key={API_KEY}&part=snippet&type=video&maxResults=1"
+    
     try:
-        with yt_dlp.YoutubeDL(SEARCH_OPTS) as ydl:
-            info = ydl.extract_info(f"ytsearch1:{query}", download=False)
-            if 'entries' in info and len(info['entries']) > 0:
-                return info['entries'][0]['id']
+        response = requests.get(url)
+        data = response.json()
+        
+        if data.get("items"):
+            return data["items"][0]["id"]["videoId"]
+            
     except Exception as e:
         print(f"  [!] Search Error: {e}")
+        
     return None
 
 def save_formatted_json(data_list, filename):
@@ -62,6 +62,11 @@ def save_formatted_json(data_list, filename):
         f.write("]\n")
 
 def main():
+    if not API_KEY:
+        print("Error: YOUTUBE_API_KEY environment variable not found!")
+        print("Please add it to your GitHub Secrets and workflow.")
+        sys.exit(1)
+
     if not os.path.exists(INPUT_FILE):
         print(f"Error: {INPUT_FILE} not found.")
         return
@@ -82,7 +87,6 @@ def main():
         title = song.get('song', 'Unknown')
         
         print(f"[{i+1}/{total_songs}] {artist} - {title}")
-
         print(f"  Checking ID ({vid_id})...", end=" ", flush=True)
         
         if is_video_valid(vid_id):
@@ -101,7 +105,7 @@ def main():
 
         fixed_list.append(song)
         
-        time.sleep(1)
+        time.sleep(0.1) 
 
     print("-" * 60)
     print(f"Saving formatted JSON to {OUTPUT_FILE}...")
@@ -109,4 +113,5 @@ def main():
     print("Done!")
 
 if __name__ == "__main__":
+    import sys
     main()
